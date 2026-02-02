@@ -132,6 +132,7 @@ function reflect(p){
   ball.vx=dir*ball.speed*Math.cos(ang);
   ball.vy=ball.speed*Math.sin(ang);
 }
+  const GOAL_OFFSET = 30; // هرچی بیشتر = گل دیرتر حساب میشه
 
 /* AI */
 function aiMove(){
@@ -153,7 +154,7 @@ function loop(){
   if(singlePlayer) aiMove();
 
   // left paddle
-  if(ball.x-ball.r<left.x+paddleW){
+  if(ball.x - ball.r < GOAL_OFFSET){
     if(Math.abs(ball.y-left.y)<paddleH/2){
       reflect(left);
     }else{
@@ -164,7 +165,7 @@ function loop(){
   }
 
   // right paddle
-  if(ball.x+ball.r>right.x-paddleW){
+    if(ball.x + ball.r > canvas.width - GOAL_OFFSET){
     if(Math.abs(ball.y-right.y)<paddleH/2){
       reflect(right);
     }else{
