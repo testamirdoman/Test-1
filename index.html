@@ -16,25 +16,37 @@ html,body{
   touch-action:none;
   font-family:system-ui;
 }
-canvas{
-  display:block;
-}
-#score{
+canvas{display:block;}
+#ui{
   position:fixed;
   top:10px;
   left:50%;
   transform:translateX(-50%);
+  display:flex;
+  gap:14px;
+  align-items:center;
   color:white;
-  font-size:20px;
+  font-size:18px;
   font-weight:700;
-  letter-spacing:3px;
   z-index:10;
+}
+button{
+  background:#0c1530;
+  border:1px solid #223;
+  color:white;
+  border-radius:8px;
+  padding:6px 10px;
+  font-size:14px;
 }
 </style>
 </head>
 <body>
 
-<div id="score"><span id="l">0</span> : <span id="r">0</span></div>
+<div id="ui">
+  <button id="modeBtn">👤👤</button>
+  <div><span id="l">0</span> : <span id="r">0</span></div>
+</div>
+
 <canvas id="c"></canvas>
 
 <script>
@@ -49,11 +61,16 @@ function resize(){
 resize();
 addEventListener("resize",resize);
 
-/* game values */
+/* mode */
+let singlePlayer = false;
+const modeBtn = document.getElementById("modeBtn");
+
+/* score */
 let scoreL=0, scoreR=0;
 const scoreLEl=document.getElementById("l");
 const scoreREl=document.getElementById("r");
 
+/* objects */
 const paddleW=14;
 let paddleH;
 
@@ -70,6 +87,14 @@ function resetBall(dir=1){
   ball.vy=ball.speed*Math.sin(a);
 }
 
+function resetGame(){
+  scoreL=scoreR=0;
+  scoreLEl.textContent=scoreL;
+  scoreREl.textContent=scoreR;
+  ball.speed=6;
+  resetBall(Math.random()>0.5?1:-1);
+}
+
 /* init */
 function init(){
   paddleH=canvas.height*0.18;
@@ -80,16 +105,20 @@ function init(){
 }
 init();
 
-/* input (touch + mouse) */
+/* input */
 function handle(y,isRight){
   if(isRight) right.y=y;
   else left.y=y;
 }
 
 addEventListener("pointermove",e=>{
-  const half=canvas.width/2;
-  if(e.clientX<half) handle(e.clientY,false);
-  else handle(e.clientY,true);
+  if(singlePlayer){
+    handle(e.clientY,false);
+  }else{
+    const half=canvas.width/2;
+    if(e.clientX<half) handle(e.clientY,false);
+    else handle(e.clientY,true);
+  }
 });
 
 /* helpers */
@@ -104,6 +133,13 @@ function reflect(p){
   ball.vy=ball.speed*Math.sin(ang);
 }
 
+/* AI */
+function aiMove(){
+  const target = ball.y;
+  const speed = 0.12;
+  right.y += (target - right.y) * speed;
+}
+
 /* loop */
 function loop(){
   paddleH=canvas.height*0.18;
@@ -113,6 +149,8 @@ function loop(){
 
   if(ball.y<ball.r||ball.y>canvas.height-ball.r)
     ball.vy*=-1;
+
+  if(singlePlayer) aiMove();
 
   // left paddle
   if(ball.x-ball.r<left.x+paddleW){
@@ -139,7 +177,6 @@ function loop(){
   left.y=clamp(left.y,paddleH/2,canvas.height-paddleH/2);
   right.y=clamp(right.y,paddleH/2,canvas.height-paddleH/2);
 
-  /* draw */
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.fillStyle="#fff";
 
@@ -153,6 +190,13 @@ function loop(){
   requestAnimationFrame(loop);
 }
 loop();
+
+/* mode toggle */
+modeBtn.onclick=()=>{
+  singlePlayer=!singlePlayer;
+  modeBtn.textContent = singlePlayer ? "👤🤖" : "👤👤";
+  resetGame();
+};
 </script>
 
 </body>
