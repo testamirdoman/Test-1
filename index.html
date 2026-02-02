@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Pong — بازی پینگ‌پنگ</title>
+<title>Pong — AI Only (Fixed)</title>
 <style>
   :root{
     --bg:#071026;
@@ -13,7 +13,7 @@
     --text:#e6f7ff;
   }
   html,body{height:100%;margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto;background:linear-gradient(180deg,var(--bg),#02040b);color:var(--text);-webkit-tap-highlight-color:transparent;}
-  .wrap{display:grid;grid-template-rows:auto 1fr auto;min-height:100vh;gap:12px;padding:14px;}
+  .wrap{display:grid;grid-template-rows:auto 1fr auto;min-height:100vh;gap:12px;padding:12px;}
   header{display:flex;gap:12px;align-items:center;justify-content:space-between}
   h1{font-size:18px;margin:0}
   .controls{display:flex;gap:8px;align-items:center}
@@ -21,42 +21,29 @@
   button.ghost{background:transparent}
   .small{padding:6px 8px;font-size:13px}
   .row{display:flex;gap:8px;align-items:center}
-  .game-area{position:relative;display:flex;align-items:center;justify-content:center;border-radius:10px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.03)}
-  canvas{width:100%;height:calc(100vh - 180px);display:block;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent 30%);touch-action:none}
+  .game-area{position:relative;display:flex;align-items:center;justify-content:center;border-radius:10px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.03);height:calc(100vh - 190px)}
+  canvas{width:100%;height:100%;display:block;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent 30%);touch-action:none}
   footer{display:flex;justify-content:space-between;align-items:center;gap:8px}
   .panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
   .label{opacity:.85;font-size:13px}
   select,input[type=range]{background:var(--panel);border:1px solid var(--muted);color:var(--text);padding:6px;border-radius:6px}
-  .hud{display:flex;gap:12px;align-items:center;font-weight:700;font-size:20px}
-  .notice{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(0,0,0,0.3);backdrop-filter: blur(4px);padding:6px 12px;border-radius:999px;border:1px solid rgba(255,255,255,0.04)}
-  /* touch hint halves */
-  .touch-hint{position:absolute;inset:0;pointer-events:none;display:flex}
-  .touch-hint > div{flex:1;border-left:1px dashed rgba(255,255,255,0.02)}
-  .settings{display:flex;gap:8px;align-items:center}
-  .center-note{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;color:rgba(255,255,255,0.06);font-size:120px;font-weight:900;letter-spacing:18px}
+  .hud{display:flex;gap:12px;align-items:center;font-weight:700;font-size:18px}
+  .notice{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(0,0,0,0.28);backdrop-filter: blur(4px);padding:6px 12px;border-radius:999px;border:1px solid rgba(255,255,255,0.04);z-index:5}
+  .center-note{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;color:rgba(255,255,255,0.06);font-size:80px;font-weight:900;letter-spacing:8px;z-index:4}
   @media (max-width:700px){
-    canvas{height:calc(100vh - 220px)}
-    .center-note{font-size:60px}
+    .center-note{font-size:46px}
   }
 </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <h1>Pong — بازی</h1>
+      <h1>Pong — حالت AI</h1>
       <div class="controls">
         <div class="panel row">
-          <label class="label" for="mode">حالت:</label>
-          <select id="mode" title="حالت بازی">
-            <option value="single">تک‌نفره (برابر با AI)</option>
-            <option value="local">دو‌نفره محلی</option>
-          </select>
-        </div>
-
-        <div class="panel row">
-          <label class="label" for="difficulty">سختی:</label>
-          <select id="difficulty">
-            <option value="0.25">آسان</option>
+          <label class="label" for="difficulty">سختی AI:</label>
+          <select id="difficulty" title="سختی">
+            <option value="0.2">آسان</option>
             <option value="0.5" selected>متوسط</option>
             <option value="0.85">سخت</option>
           </select>
@@ -70,19 +57,18 @@
     </header>
 
     <main class="game-area panel" id="gameWrap">
-      <div class="notice" id="notice">برای حرکت: لمس یا کشیدن / W/S و ↑/↓</div>
-      <div class="touch-hint"><div></div><div></div></div>
+      <div class="notice" id="notice">حالت AI — هر دو پدال را هوش مصنوعی کنترل می‌کند</div>
       <canvas id="canvas"></canvas>
-      <div class="center-note" id="endMark" style="display:none">GAME</div>
+      <div class="center-note" id="endMark" style="display:none">GAME OVER</div>
     </main>
 
     <footer>
       <div class="hud panel">
-        <div>بازیکن چپ: <span id="scoreL">0</span></div>
-        <div style="width:14px"></div>
-        <div>بازیکن راست: <span id="scoreR">0</span></div>
+        <div>امتیاز بازیکن چپ: <strong id="scoreL">0</strong></div>
+        <div style="width:18px"></div>
+        <div>امتیاز بازیکن راست: <strong id="scoreR">0</strong></div>
       </div>
-      <div class="panel row settings">
+      <div class="panel row">
         <label class="label">تا نمره:</label>
         <select id="scoreTo">
           <option value="3">3</option>
@@ -90,248 +76,146 @@
           <option value="7" selected>7</option>
           <option value="11">11</option>
         </select>
-        <div style="width:8px"></div>
-        <div class="label">نسخه موبایل: لمس نیمه صفحه برای کنترل</div>
       </div>
     </footer>
   </div>
 
 <script>
-/* --------- بازی Pong در یک فایل --------- */
-/* سریع: کامنت‌ها کافی و کنترل‌های لمسی/کیبورد */
+/* ---------- Pong AI-only (fixed) ---------- */
 const canvas = document.getElementById('canvas');
+const gameWrap = document.getElementById('gameWrap');
 const ctx = canvas.getContext('2d');
-let W=0,H=0;
 
-function resize(){
-  W = canvas.width = canvas.clientWidth = window.innerWidth - 40; // محاسبه ساده
-  H = canvas.height = canvas.clientHeight = Math.max(300, window.innerHeight - 220);
+let W = 0, H = 0;
+function resizeCanvas(){
+  const r = gameWrap.getBoundingClientRect();
+  canvas.width = Math.max(300, Math.floor(r.width));
+  canvas.height = Math.max(200, Math.floor(r.height));
+  W = canvas.width;
+  H = canvas.height;
 }
-window.addEventListener('resize', () => { resize(); });
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
-resize();
-
-/* بازی */
-let running = false, paused=false;
-let scoreL = 0, scoreR = 0;
+/* UI elements */
 const scoreLEl = document.getElementById('scoreL');
 const scoreREl = document.getElementById('scoreR');
 const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
 const resetBtn = document.getElementById('resetBtn');
 const muteBtn = document.getElementById('muteBtn');
-const modeSelect = document.getElementById('mode');
 const difficultySel = document.getElementById('difficulty');
 const scoreToSel = document.getElementById('scoreTo');
 const notice = document.getElementById('notice');
 const endMark = document.getElementById('endMark');
 
+let running = false, paused = false;
+let scoreL = 0, scoreR = 0;
 let soundOn = true;
 
-/* WebAudio ساده برای صدا */
+/* audio */
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
-function beep(freq=200, duration=0.06, gain=0.08){
+function beep(freq=200, dur=0.06, g=0.06){
   if(!soundOn) return;
   if(!audioCtx) audioCtx = new AudioCtx();
   const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.type='sine';
+  const gg = audioCtx.createGain();
+  o.type = 'sine';
   o.frequency.value = freq;
-  g.gain.value = gain;
-  o.connect(g); g.connect(audioCtx.destination);
-  o.start();
-  o.stop(audioCtx.currentTime + duration);
+  gg.gain.value = g;
+  o.connect(gg); gg.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + dur);
 }
 
-/* تنظیمات بازی و اشیاء */
+/* game objects */
 const PADDLE_W = 14;
-let PADDLE_H = 80; // بروزرسانی در resize
-const PADDLE_SPEED = 8;
+let PADDLE_H = 80;
+const ball = { x: W/2, y: H/2, vx:0, vy:0, r:8, speed:6 };
+const left = { x: 30, y: H/2 };
+const right = { x: W-30, y: H/2 };
 
-const ball = {
-  x: W/2,
-  y: H/2,
-  vx: 0,
-  vy: 0,
-  r: 8,
-  speed: 6
-};
+/* helpers */
+const rnd = (a=1,b=0)=>Math.random()*a+b;
+const lerp = (a,b,t)=>a+(b-a)*t;
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 
-const left = { x: 30, y: H/2, vy:0 };
-const right = { x: W-30, y: H/2, vy:0 };
-
-/* راه‌اندازی بازی جدید */
-function resetBall(servesToRight = Math.random() > 0.5) {
+function resetBall(servesRight = Math.random() > 0.5){
   ball.x = W/2;
   ball.y = H/2;
-  ball.speed = Math.max(5, Math.min(10, (parseInt(scoreToSel.value)||7) / 2 + 5));
-  let ang = (Math.random() * Math.PI/3) - Math.PI/6; // ±30deg
-  ball.vx = (servesToRight ? 1 : -1) * ball.speed * Math.cos(ang);
+  const to = parseInt(scoreToSel.value) || 7;
+  ball.speed = Math.max(5, Math.min(12, 5 + to/2));
+  const ang = (Math.random()*Math.PI/3) - Math.PI/6;
+  ball.vx = (servesRight?1:-1) * ball.speed * Math.cos(ang);
   ball.vy = ball.speed * Math.sin(ang);
 }
 
 function resetGame(){
-  scoreL = scoreR = 0;
-  updateScore();
+  scoreL = scoreR = 0; updateScore();
   resetBall();
-  running = false;
-  paused = false;
+  running = false; paused = false;
   endMark.style.display = 'none';
-  notice.textContent = 'برای حرکت: لمس یا کشیدن / W/S و ↑/↓';
+  notice.textContent = 'AI mode — فشار Start برای اجرا';
 }
 
-/* ران کردن بازی */
-let lastTime = 0;
-function loop(ts){
-  if(!running || paused){ lastTime = ts; requestAnimationFrame(loop); return; }
-  const dt = Math.min(40, ts - lastTime) / 16.666; // تقریب به فریم 60
-  lastTime = ts;
-  update(dt);
-  draw();
-  requestAnimationFrame(loop);
-}
-
-/* به‌روز‌رسانی اندازه‌ها و موقعیت‌ها */
-function update(dt){
-  // اندازه پدال‌ها متناسب صفحه
-  PADDLE_H = Math.max(48, Math.min(160, H * 0.18));
-
-  // حرکت پدال‌ها: left.y, right.y به‌روزرسانی می‌شه توسط ورودی‌ها یا AI
-  left.y += left.vy * PADDLE_SPEED * dt;
-  right.y += right.vy * PADDLE_SPEED * dt;
-
-  // محدود کردن داخل صفحه
-  left.y = Math.max(PADDLE_H/2, Math.min(H - PADDLE_H/2, left.y));
-  right.y = Math.max(PADDLE_H/2, Math.min(H - PADDLE_H/2, right.y));
-
-  // حرکت توپ
-  ball.x += ball.vx * dt;
-  ball.y += ball.vy * dt;
-
-  // برخورد با بالا/پایین
-  if(ball.y - ball.r < 0){ ball.y = ball.r; ball.vy *= -1; beep(300); }
-  if(ball.y + ball.r > H){ ball.y = H - ball.r; ball.vy *= -1; beep(300); }
-
-  // برخورد با پدال چپ
-  if(ball.x - ball.r < left.x + PADDLE_W/2){
-    if(Math.abs(ball.y - left.y) < PADDLE_H/2 + ball.r){
-      // برخورد
-      ball.x = left.x + PADDLE_W/2 + ball.r;
-      reflectFromPaddle(left);
-      beep(520);
-    } else {
-      // گل راست
-      scoreR++;
-      updateScore();
-      beep(120,0.12,0.14);
-      checkEnd();
-      resetBall(true);
-    }
-  }
-
-  // برخورد با پدال راست
-  if(ball.x + ball.r > right.x - PADDLE_W/2){
-    if(Math.abs(ball.y - right.y) < PADDLE_H/2 + ball.r){
-      ball.x = right.x - PADDLE_W/2 - ball.r;
-      reflectFromPaddle(right);
-      beep(520);
-    } else {
-      // گل چپ
-      scoreL++;
-      updateScore();
-      beep(120,0.12,0.14);
-      checkEnd();
-      resetBall(false);
-    }
-  }
-
-  // هوش مصنوعی (در حالت تک‌نفره)
-  if(modeSelect.value === 'single'){
-    const diff = parseFloat(difficultySel.value) || 0.5;
-    // راست: AI
-    let targetY = ball.y + (Math.random()*120 - 60) * (1 - diff); // خطا پنهان بر اساس سختی
-    // ساده: حرکت به سمت هدف
-    if(Math.abs(right.y - targetY) > 6) right.vy = (right.y < targetY) ? 1 * diff*1.8 : -1 * diff*1.8;
-    else right.vy = 0;
-    // چپ: اگر کاربر نیست، کمی رندوم حرکت کند
-    if(!inputState.leftActive && modeSelect.value !== 'local') {
-      // آرام گشت زنی
-      left.vy = Math.sign(Math.sin(Date.now()/1000 + 0.5)) * 0.25;
-    }
-  } else {
-    // در حالت local: هیچ AI برای پدال‌ها
-    // اگر کاربر لمسی برای هر نیمه کنترل کند، input ها ست می‌شوند
-    if(!inputState.leftActive) left.vy = 0;
-    if(!inputState.rightActive) right.vy = 0;
-  }
-}
-
-/* بازتاب توپ از روی پدال */
+/* reflect */
 function reflectFromPaddle(pad){
-  // فاصله عمودی از مرکز پدال
   let relative = (ball.y - pad.y) / (PADDLE_H/2);
-  relative = Math.max(-1, Math.min(1, relative));
-  // زاویه بازتاب از -60 تا 60 درجه
+  relative = clamp(relative, -1, 1);
   const maxAng = Math.PI*0.45;
   const ang = relative * maxAng;
-  const speedUp = 1.06; // افزایش سرعت هر برخورد
-  ball.speed = Math.min(18, ball.speed * speedUp);
-  // جهت vx بر اساس اینکه کدام پدال است
+  ball.speed = Math.min(18, ball.speed * 1.05);
   const dir = (pad === left) ? 1 : -1;
   ball.vx = dir * ball.speed * Math.cos(ang);
   ball.vy = ball.speed * Math.sin(ang);
 }
 
-/* به‌روزرسانی امتیاز روی صفحه */
+/* scoring */
 function updateScore(){
   scoreLEl.textContent = scoreL;
   scoreREl.textContent = scoreR;
 }
 
-/* چک انتها */
+/* check end */
 function checkEnd(){
   const to = parseInt(scoreToSel.value) || 7;
   if(scoreL >= to || scoreR >= to){
     running = false;
     endMark.style.display = 'block';
-    endMark.textContent = scoreL>scoreR ? 'PLAYER LEFT WON' : 'PLAYER RIGHT WON';
-    notice.textContent = 'تمام شد — دکمه شروع برای بازی دوباره';
-    beep(220,0.25,0.16);
+    endMark.textContent = scoreL>scoreR ? 'Left Wins' : 'Right Wins';
+    notice.textContent = 'بازی تمام شد — Start برای بازی دوباره';
+    beep(220,0.22,0.12);
   }
 }
 
-/* رسم */
+/* draw */
 function draw(){
-  // زمینه
   ctx.clearRect(0,0,W,H);
-  // فضای بازی (سبک شب)
-  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  // background subtle
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
   ctx.fillRect(0,0,W,H);
 
-  // خطوط میانی
+  // mid line
   ctx.strokeStyle = 'rgba(255,255,255,0.06)';
   ctx.lineWidth = 2;
   ctx.setLineDash([8,12]);
-  ctx.beginPath();
-  ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke();
   ctx.setLineDash([]);
 
-  // امتیازها عنوان در بالای صفحه کوچک در notice (already UI)
-  // پدال‌ها
+  // paddles
   ctx.fillStyle = '#fff';
   // left
   roundRect(ctx, left.x - PADDLE_W/2, left.y - PADDLE_H/2, PADDLE_W, PADDLE_H, 6);
   // right
   roundRect(ctx, right.x - PADDLE_W/2, right.y - PADDLE_H/2, PADDLE_W, PADDLE_H, 6);
 
-  // توپ
+  // ball
   ctx.beginPath();
   ctx.fillStyle = '#ffd';
   ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
   ctx.fill();
 
-  // نورِ ملایم اطراف توپ (glow)
+  // glow
   const g = ctx.createRadialGradient(ball.x, ball.y, 0, ball.x, ball.y, ball.r*6);
   g.addColorStop(0, 'rgba(31,182,255,0.12)');
   g.addColorStop(1, 'rgba(31,182,255,0)');
@@ -341,7 +225,6 @@ function draw(){
   ctx.fill();
 }
 
-/* helper: rounded rectangles */
 function roundRect(ctx,x,y,w,h,r){
   ctx.beginPath();
   ctx.moveTo(x+r,y);
@@ -353,156 +236,106 @@ function roundRect(ctx,x,y,w,h,r){
   ctx.fill();
 }
 
-/* ورودی‌ها: کیبورد */
-const keys = {};
-window.addEventListener('keydown', e=>{
-  keys[e.key.toLowerCase()] = true;
-  inputFromKeys();
-});
-window.addEventListener('keyup', e=>{
-  keys[e.key.toLowerCase()] = false;
-  inputFromKeys();
-});
+/* main update */
+let lastTime = 0;
+function loop(ts){
+  if(!running || paused){ lastTime = ts; requestAnimationFrame(loop); return; }
+  const dt = Math.min(40, ts - lastTime) / 16.666;
+  lastTime = ts;
 
-function inputFromKeys(){
-  // W/S برای چپ ، ArrowUp/ArrowDown برای راست
-  if(modeSelect.value === 'local'){
-    left.vy = (keys['w']? -1 : (keys['s']? 1 : 0));
-    right.vy = (keys['arrowup']? -1 : (keys['arrowdown']? 1 : 0));
-  } else {
-    // تک‌نفره: کاربر چپ با کیبورد کنترل کند
-    left.vy = (keys['w']? -1 : (keys['s']? 1 : 0));
-  }
-}
+  // adapt sizes
+  PADDLE_H = Math.max(48, Math.min(160, canvas.height * 0.18));
 
-/* ورودی لمسی / موس: نیم‌صفحه برای هر بازیکن */
-const inputState = {
-  leftActive: false,
-  rightActive: false,
-  touches: {}
-};
+  // ball movement
+  ball.x += ball.vx * dt;
+  ball.y += ball.vy * dt;
 
-function handlePointer(e){
-  const rect = canvas.getBoundingClientRect();
-  const x = (e.clientX ?? (e.touches? e.touches[0].clientX : 0)) - rect.left;
-  const y = (e.clientY ?? (e.touches? e.touches[0].clientY : 0)) - rect.top;
-  // تعیین نیمه صفحه
-  if(modeSelect.value === 'local'){
-    if(x < rect.width/2){
-      left.y = y;
-      inputState.leftActive = true;
+  // top/bottom
+  if(ball.y - ball.r < 0){ ball.y = ball.r; ball.vy *= -1; beep(300); }
+  if(ball.y + ball.r > H){ ball.y = H - ball.r; ball.vy *= -1; beep(300); }
+
+  // paddles AI: both sides target ball.y with smoothing & difficulty
+  const diff = clamp(parseFloat(difficultySel.value) || 0.5, 0.05, 0.98);
+  // compute targets with slight predictive offset based on ball.vx sign
+  const predictOffset = Math.min(120, Math.abs(ball.vx) * 8);
+  let targetLeft = ball.y + (ball.vx < 0 ? (ball.vy * 6) : 0);
+  let targetRight = ball.y + (ball.vx > 0 ? (ball.vy * 6) : 0);
+
+  // Add a small error/noise inversely proportional to difficulty
+  const jitter = (1 - diff) * 60;
+  targetLeft += (Math.random()*jitter - jitter/2);
+  targetRight += (Math.random()*jitter - jitter/2);
+
+  // smooth follow: stronger smoothing for higher difficulty
+  const followStrength = 0.06 + diff * 0.22; // 0.08 .. 0.3
+  left.y += (targetLeft - left.y) * followStrength * dt;
+  right.y += (targetRight - right.y) * followStrength * dt;
+
+  // clamp paddles within screen
+  left.y = clamp(left.y, PADDLE_H/2, H - PADDLE_H/2);
+  right.y = clamp(right.y, PADDLE_H/2, H - PADDLE_H/2);
+
+  // collisions with paddles
+  if(ball.x - ball.r < left.x + PADDLE_W/2){
+    if(Math.abs(ball.y - left.y) < PADDLE_H/2 + ball.r){
+      ball.x = left.x + PADDLE_W/2 + ball.r;
+      reflectFromPaddle(left);
+      beep(520);
     } else {
-      right.y = y;
-      inputState.rightActive = true;
-    }
-  } else {
-    // تک‌نفره: لمسی کنترل بازیکن چپ
-    left.y = y;
-    inputState.leftActive = true;
-    // هنگام لمس: نزدیک کنش AI (هر دو به آن نقطه نزدیک بشن) — دستور کاربر
-    // به جای این، می‌توانیم توپ/مرکز را به آن سمت سوق دهیم؛ اما درخواستی داشتی که وقتی تاچ کردی دوتا نزدیک هم باشن
-    // اجرای آن: وقتی pointerdown، ما دو پدال را برای لحظه‌ای موقعیت می‌دهیم تا نزدیک نقطه باشند
-  }
-}
-
-canvas.addEventListener('pointerdown', e=>{
-  e.preventDefault();
-  handlePointer(e);
-  // هنگام down، اگر تک‌نفره، نزدیک کن دو پدال به نقطه لمس شده
-  if(modeSelect.value === 'single'){
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    // هر دو پدال به سمت y حرکت می‌کنند (قریب)
-    left.y = y;
-    right.y = y;
-    inputState.leftActive = true;
-    inputState.rightActive = true;
-    notice.textContent = 'لمس شد — پدال‌ها نزدیک شدند';
-    setTimeout(()=>{ notice.textContent = 'برای حرکت: لمس یا کشیدن / W/S و ↑/↓'; inputState.rightActive = false; }, 600);
-  }
-});
-
-canvas.addEventListener('pointermove', e=>{
-  e.preventDefault();
-  handlePointer(e);
-});
-
-canvas.addEventListener('pointerup', e=>{
-  e.preventDefault();
-  inputState.leftActive = false;
-  inputState.rightActive = false;
-});
-
-canvas.addEventListener('touchmove', e=>{
-  e.preventDefault();
-  const rect = canvas.getBoundingClientRect();
-  // در صورت چند لمس، هر لمس را بررسی کن
-  for(let i=0;i<e.touches.length;i++){
-    const t = e.touches[i];
-    const x = t.clientX - rect.left;
-    const y = t.clientY - rect.top;
-    if(x < rect.width/2){
-      left.y = y;
-      inputState.leftActive = true;
-    } else {
-      right.y = y;
-      inputState.rightActive = true;
+      // right scores
+      scoreR++; updateScore(); beep(120,0.12,0.14);
+      checkEnd();
+      resetBall(true);
     }
   }
-}, { passive:false });
 
-window.addEventListener('touchend', e=>{
-  // اگر هیچ لمسی نمانده باشد
-  if((e.touches && e.touches.length===0) || !e.touches) {
-    inputState.leftActive = false;
-    inputState.rightActive = false;
+  if(ball.x + ball.r > right.x - PADDLE_W/2){
+    if(Math.abs(ball.y - right.y) < PADDLE_H/2 + ball.r){
+      ball.x = right.x - PADDLE_W/2 - ball.r;
+      reflectFromPaddle(right);
+      beep(520);
+    } else {
+      // left scores
+      scoreL++; updateScore(); beep(120,0.12,0.14);
+      checkEnd();
+      resetBall(false);
+    }
   }
-});
 
-/* دکمه‌ها */
-startBtn.addEventListener('click', () => {
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/* controls */
+startBtn.addEventListener('click', ()=>{
   if(!running){
-    running = true;
-    paused = false;
-    lastTime = performance.now();
+    running = true; paused = false; lastTime = performance.now();
     resetBall();
     requestAnimationFrame(loop);
-    notice.textContent = 'در حال بازی...';
+    notice.textContent = 'در حال اجرا — AI هر دو پدال را کنترل می‌کند';
   } else {
-    // restart mid-game
-    scoreL = scoreR = 0;
-    updateScore();
-    resetBall();
-    notice.textContent = 'شروع مجدد';
+    // restart match
+    scoreL = scoreR = 0; updateScore(); resetBall(); notice.textContent='شروع مجدد';
   }
 });
-pauseBtn.addEventListener('click', () => {
+pauseBtn.addEventListener('click', ()=>{
   paused = !paused;
   pauseBtn.textContent = paused ? 'ادامه' : 'توقف';
   notice.textContent = paused ? 'متوقف شد' : 'ادامه';
 });
-resetBtn.addEventListener('click', () => { resetGame(); });
+resetBtn.addEventListener('click', ()=>{ resetGame(); });
 muteBtn.addEventListener('click', ()=>{
-  soundOn = !soundOn;
-  muteBtn.textContent = soundOn ? '🔊' : '🔇';
+  soundOn = !soundOn; muteBtn.textContent = soundOn ? '🔊' : '🔇';
 });
 
-/* شروع اولیه */
+/* initial setup */
 resetGame();
-
-/* کلید میانبر: فضا برای شروع/توقف */
-window.addEventListener('keydown', (e)=>{
-  if(e.code === 'Space'){ e.preventDefault(); if(!running) startBtn.click(); else pauseBtn.click(); }
-});
-
-/* رفتار هوشمند: وقتی در حالت single و کاربر تاچ کرد، پدال‌ها نزدیک می‌شوند.
-   این بخش قبلاً در pointerdown انجام شد؛ اگر بخواهی می‌توانیم زمان و نحوه را دقیق‌تر تنظیم کنیم. */
-
-/* در نهایت: اجرای اولیه رندر (بدون شروع) */
 draw();
 
-/* اگر کاربر اسکرول یا زوم خواست، touch-action:none تنظیم شده؛ برای برخی مرورگرها ممکن است لازم باشد gesture handling */
+/* ensure canvas resizes to container on load (for mobile chrome UI) */
+window.addEventListener('load', ()=>{
+  setTimeout(()=>{ resizeCanvas(); draw(); }, 60);
+});
 </script>
 </body>
 </html>
