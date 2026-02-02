@@ -127,7 +127,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function reflect(p){
   const rel=(ball.y-p.y)/(paddleH/2);
   const ang=rel*Math.PI*0.45;
-  ball.speed=Math.min(ball.speed*1.05,16);
+  ball.speed=Math.min(ball.speed*1.05,5);
   const dir=p===left?1:-1;
   ball.vx=dir*ball.speed*Math.cos(ang);
   ball.vy=ball.speed*Math.sin(ang);
