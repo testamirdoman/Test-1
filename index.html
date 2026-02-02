@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Spider Cursor Final</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  background: black;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+canvas { display: block; }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+let w, h;
+const { sin, cos, PI, hypot, min, max } = Math;
+
+/* ---------- utils ---------- */
+const rnd = (x=1,a=0)=>Math.random()*x+a;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const many=(n,f)=>[...Array(n)].map((_,i)=>f(i));
+const pt=(x,y)=>({x,y});
+
+/* ---------- stars ---------- */
+const stars = many(500,()=>({
+  x:rnd(innerWidth),
+  y:rnd(innerHeight),
+  a:rnd(0.05,0.02)
+}));
+
+/* ---------- draw ---------- */
+function drawCircle(x,y,r,a=1){
+  ctx.globalAlpha=a;
+  ctx.beginPath();
+  ctx.arc(x,y,r,0,PI*2);
+  ctx.fill();
+  ctx.globalAlpha=1;
+}
+
+function noise(x,y,t=101){
+  return sin(x*0.3+t)+sin(y*0.3-t);
+}
+
+function drawLine(x0,y0,x1,y1){
+  ctx.beginPath();
+  ctx.moveTo(x0,y0);
+  many(60,i=>{
+    i=(i+1)/60;
+    let x=lerp(x0,x1,i);
+    let y=lerp(y0,y1,i);
+    let k=noise(x,y)*0.6;
+    ctx.lineTo(x+k,y+k);
+  });
+  ctx.stroke();
+}
+
+/* ---------- spider ---------- */
+function spawn(){
+  const pts = many(260,()=>({
+    x:rnd(innerWidth),
+    y:rnd(innerHeight),
+    len:0,
+    r:0
+  }));
+
+  const arms = many(8,i=>({
+    x:cos(i/8*PI*2),
+    y:sin(i/8*PI*2)
+  }));
+
+  let tx=innerWidth/2, ty=innerHeight/2;
+  let x=tx, y=ty;
+  let seed=rnd(100);
+  let walk=pt(rnd(60,60),rnd(60,60));
+  let r=innerWidth/140;
+
+  return{
+    follow(px,py,lock=false){
+      tx = lock ? px+rnd(20,-10) : px;
+      ty = lock ? py+rnd(20,-10) : py;
+    },
+    idle(t){
+      tx = innerWidth/2 + cos(t+seed)*200;
+      ty = innerHeight/2 + sin(t+seed*2)*200;
+    },
+    tick(t){
+      x+= (tx-x)/8;
+      y+= (ty-y)/8;
+
+      let i=0;
+      pts.forEach(p=>{
+        const d=hypot(p.x-x,p.y-y);
+        const active=d<innerWidth/8 && i++<7;
+        const dir=active?0.12:-0.06;
+        p.len=max(0,min(p.len+dir,1));
+        p.r=active?1.6:0.8;
+
+        if(!p.len) return;
+
+        arms.forEach(a=>{
+          drawLine(
+            lerp(x+a.x*r,p.x,p.len*p.len),
+            lerp(y+a.y*r,p.y,p.len*p.len),
+            x+a.x*r,
+            y+a.y*r
+          );
+        });
+        drawCircle(p.x,p.y,p.r,0.15);
+      });
+    }
+  }
+}
+
+/* ---------- init ---------- */
+const spiders=[spawn(),spawn()];
+let active=false;
+let tx=innerWidth/2, ty=innerHeight/2;
+
+/* input */
+addEventListener("pointermove",e=>{
+  active=true;
+  tx=e.clientX; ty=e.clientY;
+  spiders.forEach(s=>s.follow(tx,ty,true));
+});
+addEventListener("pointerdown",()=>active=true);
+addEventListener("pointerup",()=>active=false);
+
+/* loop */
+requestAnimationFrame(function anim(t){
+  if(w!==innerWidth||h!==innerHeight){
+    w=canvas.width=innerWidth;
+    h=canvas.height=innerHeight;
+  }
+
+  ctx.fillStyle="rgba(0,0,0,0.25)";
+  ctx.fillRect(0,0,w,h);
+
+  // stars
+  ctx.fillStyle="#fff";
+  stars.forEach(s=>drawCircle(s.x,s.y,1,s.a));
+
+  ctx.strokeStyle="#fff";
+  ctx.lineWidth=1;
+
+  t/=1000;
+  spiders.forEach((s,i)=>{
+    if(!active) s.idle(t+i);
+    s.tick(t);
+  });
+
+  requestAnimationFrame(anim);
+});
+</script>
+
+</body>
+</html>
