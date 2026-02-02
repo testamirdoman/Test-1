@@ -1,341 +1,159 @@
 <!doctype html>
 <html lang="fa">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Pong — AI Only (Fixed)</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Pong Mobile & Desktop</title>
+
 <style>
-  :root{
-    --bg:#071026;
-    --panel:#0b1630;
-    --accent:#1fb6ff;
-    --muted:rgba(255,255,255,0.08);
-    --text:#e6f7ff;
-  }
-  html,body{height:100%;margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto;background:linear-gradient(180deg,var(--bg),#02040b);color:var(--text);-webkit-tap-highlight-color:transparent;}
-  .wrap{display:grid;grid-template-rows:auto 1fr auto;min-height:100vh;gap:12px;padding:12px;}
-  header{display:flex;gap:12px;align-items:center;justify-content:space-between}
-  h1{font-size:18px;margin:0}
-  .controls{display:flex;gap:8px;align-items:center}
-  button{background:var(--panel);border:1px solid var(--muted);color:var(--text);padding:8px 10px;border-radius:8px;font-weight:600;cursor:pointer}
-  button.ghost{background:transparent}
-  .small{padding:6px 8px;font-size:13px}
-  .row{display:flex;gap:8px;align-items:center}
-  .game-area{position:relative;display:flex;align-items:center;justify-content:center;border-radius:10px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.03);height:calc(100vh - 190px)}
-  canvas{width:100%;height:100%;display:block;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent 30%);touch-action:none}
-  footer{display:flex;justify-content:space-between;align-items:center;gap:8px}
-  .panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
-  .label{opacity:.85;font-size:13px}
-  select,input[type=range]{background:var(--panel);border:1px solid var(--muted);color:var(--text);padding:6px;border-radius:6px}
-  .hud{display:flex;gap:12px;align-items:center;font-weight:700;font-size:18px}
-  .notice{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(0,0,0,0.28);backdrop-filter: blur(4px);padding:6px 12px;border-radius:999px;border:1px solid rgba(255,255,255,0.04);z-index:5}
-  .center-note{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;color:rgba(255,255,255,0.06);font-size:80px;font-weight:900;letter-spacing:8px;z-index:4}
-  @media (max-width:700px){
-    .center-note{font-size:46px}
-  }
+html,body{
+  margin:0;
+  padding:0;
+  width:100%;
+  height:100%;
+  background:#050b1a;
+  overflow:hidden;
+  touch-action:none;
+  font-family:system-ui;
+}
+canvas{
+  display:block;
+}
+#score{
+  position:fixed;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  color:white;
+  font-size:20px;
+  font-weight:700;
+  letter-spacing:3px;
+  z-index:10;
+}
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <h1>Pong — حالت AI</h1>
-      <div class="controls">
-        <div class="panel row">
-          <label class="label" for="difficulty">سختی AI:</label>
-          <select id="difficulty" title="سختی">
-            <option value="0.2">آسان</option>
-            <option value="0.5" selected>متوسط</option>
-            <option value="0.85">سخت</option>
-          </select>
-        </div>
 
-        <button id="startBtn">شروع</button>
-        <button id="pauseBtn" class="ghost small">توقف</button>
-        <button id="resetBtn" class="small ghost">ریست</button>
-        <button id="muteBtn" class="small">🔊</button>
-      </div>
-    </header>
-
-    <main class="game-area panel" id="gameWrap">
-      <div class="notice" id="notice">حالت AI — هر دو پدال را هوش مصنوعی کنترل می‌کند</div>
-      <canvas id="canvas"></canvas>
-      <div class="center-note" id="endMark" style="display:none">GAME OVER</div>
-    </main>
-
-    <footer>
-      <div class="hud panel">
-        <div>امتیاز بازیکن چپ: <strong id="scoreL">0</strong></div>
-        <div style="width:18px"></div>
-        <div>امتیاز بازیکن راست: <strong id="scoreR">0</strong></div>
-      </div>
-      <div class="panel row">
-        <label class="label">تا نمره:</label>
-        <select id="scoreTo">
-          <option value="3">3</option>
-          <option value="5">5</option>
-          <option value="7" selected>7</option>
-          <option value="11">11</option>
-        </select>
-      </div>
-    </footer>
-  </div>
+<div id="score"><span id="l">0</span> : <span id="r">0</span></div>
+<canvas id="c"></canvas>
 
 <script>
-/* ---------- Pong AI-only (fixed) ---------- */
-const canvas = document.getElementById('canvas');
-const gameWrap = document.getElementById('gameWrap');
-const ctx = canvas.getContext('2d');
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
 
-let W = 0, H = 0;
-function resizeCanvas(){
-  const r = gameWrap.getBoundingClientRect();
-  canvas.width = Math.max(300, Math.floor(r.width));
-  canvas.height = Math.max(200, Math.floor(r.height));
-  W = canvas.width;
-  H = canvas.height;
+function resize(){
+  const vh = window.visualViewport ? visualViewport.height : innerHeight;
+  canvas.width = innerWidth;
+  canvas.height = vh;
 }
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
+resize();
+addEventListener("resize",resize);
 
-/* UI elements */
-const scoreLEl = document.getElementById('scoreL');
-const scoreREl = document.getElementById('scoreR');
-const startBtn = document.getElementById('startBtn');
-const pauseBtn = document.getElementById('pauseBtn');
-const resetBtn = document.getElementById('resetBtn');
-const muteBtn = document.getElementById('muteBtn');
-const difficultySel = document.getElementById('difficulty');
-const scoreToSel = document.getElementById('scoreTo');
-const notice = document.getElementById('notice');
-const endMark = document.getElementById('endMark');
+/* game values */
+let scoreL=0, scoreR=0;
+const scoreLEl=document.getElementById("l");
+const scoreREl=document.getElementById("r");
 
-let running = false, paused = false;
-let scoreL = 0, scoreR = 0;
-let soundOn = true;
+const paddleW=14;
+let paddleH;
 
-/* audio */
-const AudioCtx = window.AudioContext || window.webkitAudioContext;
-let audioCtx = null;
-function beep(freq=200, dur=0.06, g=0.06){
-  if(!soundOn) return;
-  if(!audioCtx) audioCtx = new AudioCtx();
-  const o = audioCtx.createOscillator();
-  const gg = audioCtx.createGain();
-  o.type = 'sine';
-  o.frequency.value = freq;
-  gg.gain.value = g;
-  o.connect(gg); gg.connect(audioCtx.destination);
-  o.start(); o.stop(audioCtx.currentTime + dur);
+const left={x:0,y:0};
+const right={x:0,y:0};
+
+const ball={x:0,y:0,vx:0,vy:0,r:8,speed:6};
+
+function resetBall(dir=1){
+  ball.x=canvas.width/2;
+  ball.y=canvas.height/2;
+  const a=(Math.random()*Math.PI/3)-(Math.PI/6);
+  ball.vx=dir*ball.speed*Math.cos(a);
+  ball.vy=ball.speed*Math.sin(a);
 }
 
-/* game objects */
-const PADDLE_W = 14;
-let PADDLE_H = 80;
-const ball = { x: W/2, y: H/2, vx:0, vy:0, r:8, speed:6 };
-const left = { x: 30, y: H/2 };
-const right = { x: W-30, y: H/2 };
+/* init */
+function init(){
+  paddleH=canvas.height*0.18;
+  left.x=30;
+  right.x=canvas.width-30;
+  left.y=right.y=canvas.height/2;
+  resetBall(Math.random()>0.5?1:-1);
+}
+init();
+
+/* input (touch + mouse) */
+function handle(y,isRight){
+  if(isRight) right.y=y;
+  else left.y=y;
+}
+
+addEventListener("pointermove",e=>{
+  const half=canvas.width/2;
+  if(e.clientX<half) handle(e.clientY,false);
+  else handle(e.clientY,true);
+});
 
 /* helpers */
-const rnd = (a=1,b=0)=>Math.random()*a+b;
-const lerp = (a,b,t)=>a+(b-a)*t;
-const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
-function resetBall(servesRight = Math.random() > 0.5){
-  ball.x = W/2;
-  ball.y = H/2;
-  const to = parseInt(scoreToSel.value) || 7;
-  ball.speed = Math.max(5, Math.min(12, 5 + to/2));
-  const ang = (Math.random()*Math.PI/3) - Math.PI/6;
-  ball.vx = (servesRight?1:-1) * ball.speed * Math.cos(ang);
-  ball.vy = ball.speed * Math.sin(ang);
+function reflect(p){
+  const rel=(ball.y-p.y)/(paddleH/2);
+  const ang=rel*Math.PI*0.45;
+  ball.speed=Math.min(ball.speed*1.05,16);
+  const dir=p===left?1:-1;
+  ball.vx=dir*ball.speed*Math.cos(ang);
+  ball.vy=ball.speed*Math.sin(ang);
 }
 
-function resetGame(){
-  scoreL = scoreR = 0; updateScore();
-  resetBall();
-  running = false; paused = false;
-  endMark.style.display = 'none';
-  notice.textContent = 'AI mode — فشار Start برای اجرا';
-}
+/* loop */
+function loop(){
+  paddleH=canvas.height*0.18;
 
-/* reflect */
-function reflectFromPaddle(pad){
-  let relative = (ball.y - pad.y) / (PADDLE_H/2);
-  relative = clamp(relative, -1, 1);
-  const maxAng = Math.PI*0.45;
-  const ang = relative * maxAng;
-  ball.speed = Math.min(18, ball.speed * 1.05);
-  const dir = (pad === left) ? 1 : -1;
-  ball.vx = dir * ball.speed * Math.cos(ang);
-  ball.vy = ball.speed * Math.sin(ang);
-}
+  ball.x+=ball.vx;
+  ball.y+=ball.vy;
 
-/* scoring */
-function updateScore(){
-  scoreLEl.textContent = scoreL;
-  scoreREl.textContent = scoreR;
-}
+  if(ball.y<ball.r||ball.y>canvas.height-ball.r)
+    ball.vy*=-1;
 
-/* check end */
-function checkEnd(){
-  const to = parseInt(scoreToSel.value) || 7;
-  if(scoreL >= to || scoreR >= to){
-    running = false;
-    endMark.style.display = 'block';
-    endMark.textContent = scoreL>scoreR ? 'Left Wins' : 'Right Wins';
-    notice.textContent = 'بازی تمام شد — Start برای بازی دوباره';
-    beep(220,0.22,0.12);
-  }
-}
-
-/* draw */
-function draw(){
-  ctx.clearRect(0,0,W,H);
-  // background subtle
-  ctx.fillStyle = 'rgba(0,0,0,0.22)';
-  ctx.fillRect(0,0,W,H);
-
-  // mid line
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([8,12]);
-  ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke();
-  ctx.setLineDash([]);
-
-  // paddles
-  ctx.fillStyle = '#fff';
-  // left
-  roundRect(ctx, left.x - PADDLE_W/2, left.y - PADDLE_H/2, PADDLE_W, PADDLE_H, 6);
-  // right
-  roundRect(ctx, right.x - PADDLE_W/2, right.y - PADDLE_H/2, PADDLE_W, PADDLE_H, 6);
-
-  // ball
-  ctx.beginPath();
-  ctx.fillStyle = '#ffd';
-  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
-  ctx.fill();
-
-  // glow
-  const g = ctx.createRadialGradient(ball.x, ball.y, 0, ball.x, ball.y, ball.r*6);
-  g.addColorStop(0, 'rgba(31,182,255,0.12)');
-  g.addColorStop(1, 'rgba(31,182,255,0)');
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(ball.x, ball.y, ball.r*6, 0, Math.PI*2);
-  ctx.fill();
-}
-
-function roundRect(ctx,x,y,w,h,r){
-  ctx.beginPath();
-  ctx.moveTo(x+r,y);
-  ctx.arcTo(x+w,y,x+w,y+h,r);
-  ctx.arcTo(x+w,y+h,x,y+h,r);
-  ctx.arcTo(x,y+h,x,y,r);
-  ctx.arcTo(x,y,x+w,y,r);
-  ctx.closePath();
-  ctx.fill();
-}
-
-/* main update */
-let lastTime = 0;
-function loop(ts){
-  if(!running || paused){ lastTime = ts; requestAnimationFrame(loop); return; }
-  const dt = Math.min(40, ts - lastTime) / 16.666;
-  lastTime = ts;
-
-  // adapt sizes
-  PADDLE_H = Math.max(48, Math.min(160, canvas.height * 0.18));
-
-  // ball movement
-  ball.x += ball.vx * dt;
-  ball.y += ball.vy * dt;
-
-  // top/bottom
-  if(ball.y - ball.r < 0){ ball.y = ball.r; ball.vy *= -1; beep(300); }
-  if(ball.y + ball.r > H){ ball.y = H - ball.r; ball.vy *= -1; beep(300); }
-
-  // paddles AI: both sides target ball.y with smoothing & difficulty
-  const diff = clamp(parseFloat(difficultySel.value) || 0.5, 0.05, 0.98);
-  // compute targets with slight predictive offset based on ball.vx sign
-  const predictOffset = Math.min(120, Math.abs(ball.vx) * 8);
-  let targetLeft = ball.y + (ball.vx < 0 ? (ball.vy * 6) : 0);
-  let targetRight = ball.y + (ball.vx > 0 ? (ball.vy * 6) : 0);
-
-  // Add a small error/noise inversely proportional to difficulty
-  const jitter = (1 - diff) * 60;
-  targetLeft += (Math.random()*jitter - jitter/2);
-  targetRight += (Math.random()*jitter - jitter/2);
-
-  // smooth follow: stronger smoothing for higher difficulty
-  const followStrength = 0.06 + diff * 0.22; // 0.08 .. 0.3
-  left.y += (targetLeft - left.y) * followStrength * dt;
-  right.y += (targetRight - right.y) * followStrength * dt;
-
-  // clamp paddles within screen
-  left.y = clamp(left.y, PADDLE_H/2, H - PADDLE_H/2);
-  right.y = clamp(right.y, PADDLE_H/2, H - PADDLE_H/2);
-
-  // collisions with paddles
-  if(ball.x - ball.r < left.x + PADDLE_W/2){
-    if(Math.abs(ball.y - left.y) < PADDLE_H/2 + ball.r){
-      ball.x = left.x + PADDLE_W/2 + ball.r;
-      reflectFromPaddle(left);
-      beep(520);
-    } else {
-      // right scores
-      scoreR++; updateScore(); beep(120,0.12,0.14);
-      checkEnd();
-      resetBall(true);
+  // left paddle
+  if(ball.x-ball.r<left.x+paddleW){
+    if(Math.abs(ball.y-left.y)<paddleH/2){
+      reflect(left);
+    }else{
+      scoreR++; scoreREl.textContent=scoreR;
+      ball.speed=6;
+      resetBall(1);
     }
   }
 
-  if(ball.x + ball.r > right.x - PADDLE_W/2){
-    if(Math.abs(ball.y - right.y) < PADDLE_H/2 + ball.r){
-      ball.x = right.x - PADDLE_W/2 - ball.r;
-      reflectFromPaddle(right);
-      beep(520);
-    } else {
-      // left scores
-      scoreL++; updateScore(); beep(120,0.12,0.14);
-      checkEnd();
-      resetBall(false);
+  // right paddle
+  if(ball.x+ball.r>right.x-paddleW){
+    if(Math.abs(ball.y-right.y)<paddleH/2){
+      reflect(right);
+    }else{
+      scoreL++; scoreLEl.textContent=scoreL;
+      ball.speed=6;
+      resetBall(-1);
     }
   }
 
-  draw();
+  left.y=clamp(left.y,paddleH/2,canvas.height-paddleH/2);
+  right.y=clamp(right.y,paddleH/2,canvas.height-paddleH/2);
+
+  /* draw */
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="#fff";
+
+  ctx.fillRect(left.x-paddleW/2,left.y-paddleH/2,paddleW,paddleH);
+  ctx.fillRect(right.x-paddleW/2,right.y-paddleH/2,paddleW,paddleH);
+
+  ctx.beginPath();
+  ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
+  ctx.fill();
+
   requestAnimationFrame(loop);
 }
-
-/* controls */
-startBtn.addEventListener('click', ()=>{
-  if(!running){
-    running = true; paused = false; lastTime = performance.now();
-    resetBall();
-    requestAnimationFrame(loop);
-    notice.textContent = 'در حال اجرا — AI هر دو پدال را کنترل می‌کند';
-  } else {
-    // restart match
-    scoreL = scoreR = 0; updateScore(); resetBall(); notice.textContent='شروع مجدد';
-  }
-});
-pauseBtn.addEventListener('click', ()=>{
-  paused = !paused;
-  pauseBtn.textContent = paused ? 'ادامه' : 'توقف';
-  notice.textContent = paused ? 'متوقف شد' : 'ادامه';
-});
-resetBtn.addEventListener('click', ()=>{ resetGame(); });
-muteBtn.addEventListener('click', ()=>{
-  soundOn = !soundOn; muteBtn.textContent = soundOn ? '🔊' : '🔇';
-});
-
-/* initial setup */
-resetGame();
-draw();
-
-/* ensure canvas resizes to container on load (for mobile chrome UI) */
-window.addEventListener('load', ()=>{
-  setTimeout(()=>{ resizeCanvas(); draw(); }, 60);
-});
+loop();
 </script>
+
 </body>
 </html>
