@@ -1,203 +1,171 @@
-<!doctype html>
-<html lang="fa">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Pong Mobile & Desktop</title>
+<meta charset="UTF-8">
+<title>Spider Cursor Final</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
 <style>
-html,body{
-  margin:0;
-  padding:0;
-  width:100%;
-  height:100%;
-  background:#050b1a;
-  overflow:hidden;
-  touch-action:none;
-  font-family:system-ui;
+html, body {
+  margin: 0;
+  padding: 0;
+  background: black;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
-canvas{display:block;}
-#ui{
-  position:fixed;
-  top:10px;
-  left:50%;
-  transform:translateX(-50%);
-  display:flex;
-  gap:14px;
-  align-items:center;
-  color:white;
-  font-size:18px;
-  font-weight:700;
-  z-index:10;
-}
-button{
-  background:#0c1530;
-  border:1px solid #223;
-  color:white;
-  border-radius:8px;
-  padding:6px 10px;
-  font-size:14px;
-}
+canvas { display: block; }
 </style>
 </head>
 <body>
 
-<div id="ui">
-  <button id="modeBtn">👤👤</button>
-  <div><span id="l">0</span> : <span id="r">0</span></div>
-</div>
-
-<canvas id="c"></canvas>
+<canvas id="canvas"></canvas>
 
 <script>
-const canvas = document.getElementById("c");
+const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-function resize(){
-  const vh = window.visualViewport ? visualViewport.height : innerHeight;
-  canvas.width = innerWidth;
-  canvas.height = vh;
-}
-resize();
-addEventListener("resize",resize);
+let w, h;
+const { sin, cos, PI, hypot, min, max } = Math;
 
-/* mode */
-let singlePlayer = false;
-const modeBtn = document.getElementById("modeBtn");
+/* ---------- utils ---------- */
+const rnd = (x=1,a=0)=>Math.random()*x+a;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const many=(n,f)=>[...Array(n)].map((_,i)=>f(i));
+const pt=(x,y)=>({x,y});
 
-/* score */
-let scoreL=0, scoreR=0;
-const scoreLEl=document.getElementById("l");
-const scoreREl=document.getElementById("r");
+/* ---------- stars ---------- */
+const stars = many(500,()=>({
+  x:rnd(innerWidth),
+  y:rnd(innerHeight),
+  a:rnd(0.05,0.02)
+}));
 
-/* objects */
-const paddleW=14;
-let paddleH;
-
-const left={x:0,y:0};
-const right={x:0,y:0};
-
-const ball={x:0,y:0,vx:0,vy:0,r:8,speed:2};
-
-function resetBall(dir=1){
-  ball.x=canvas.width/2;
-  ball.y=canvas.height/2;
-  const a=(Math.random()*Math.PI/3)-(Math.PI/6);
-  ball.vx=dir*ball.speed*Math.cos(a);
-  ball.vy=ball.speed*Math.sin(a);
+/* ---------- draw ---------- */
+function drawCircle(x,y,r,a=1){
+  ctx.globalAlpha=a;
+  ctx.beginPath();
+  ctx.arc(x,y,r,0,PI*2);
+  ctx.fill();
+  ctx.globalAlpha=1;
 }
 
-function resetGame(){
-  scoreL=scoreR=0;
-  scoreLEl.textContent=scoreL;
-  scoreREl.textContent=scoreR;
-  ball.speed=6;
-  resetBall(Math.random()>0.5?1:-1);
+function noise(x,y,t=101){
+  return sin(x*0.3+t)+sin(y*0.3-t);
 }
 
-/* init */
-function init(){
-  paddleH=canvas.height*0.18;
-  left.x=30;
-  right.x=canvas.width-30;
-  left.y=right.y=canvas.height/2;
-  resetBall(Math.random()>0.5?1:-1);
+function drawLine(x0,y0,x1,y1){
+  ctx.beginPath();
+  ctx.moveTo(x0,y0);
+  many(60,i=>{
+    i=(i+1)/60;
+    let x=lerp(x0,x1,i);
+    let y=lerp(y0,y1,i);
+    let k=noise(x,y)*0.6;
+    ctx.lineTo(x+k,y+k);
+  });
+  ctx.stroke();
 }
-init();
+
+/* ---------- spider ---------- */
+function spawn(){
+  const pts = many(260,()=>({
+    x:rnd(innerWidth),
+    y:rnd(innerHeight),
+    len:0,
+    r:0
+  }));
+
+  const arms = many(8,i=>({
+    x:cos(i/8*PI*2),
+    y:sin(i/8*PI*2)
+  }));
+
+  let tx=innerWidth/2, ty=innerHeight/2;
+  let x=tx, y=ty;
+  let seed=rnd(100);
+  let walk=pt(rnd(60,60),rnd(60,60));
+  let r=innerWidth/140;
+
+  return{
+    follow(px,py,lock=false){
+      tx = lock ? px+rnd(20,-10) : px;
+      ty = lock ? py+rnd(20,-10) : py;
+    },
+    idle(t){
+      tx = innerWidth/2 + cos(t+seed)*200;
+      ty = innerHeight/2 + sin(t+seed*2)*200;
+    },
+    tick(t){
+      x+= (tx-x)/8;
+      y+= (ty-y)/8;
+
+      let i=0;
+      pts.forEach(p=>{
+        const d=hypot(p.x-x,p.y-y);
+        const active=d<innerWidth/8 && i++<7;
+        const dir=active?0.12:-0.06;
+        p.len=max(0,min(p.len+dir,1));
+        p.r=active?1.6:0.8;
+
+        if(!p.len) return;
+
+        arms.forEach(a=>{
+          drawLine(
+            lerp(x+a.x*r,p.x,p.len*p.len),
+            lerp(y+a.y*r,p.y,p.len*p.len),
+            x+a.x*r,
+            y+a.y*r
+          );
+        });
+        drawCircle(p.x,p.y,p.r,0.15);
+      });
+    }
+  }
+}
+
+/* ---------- init ---------- */
+const spiders=[spawn(),spawn()];
+let active=false;
+let tx=innerWidth/2, ty=innerHeight/2;
 
 /* input */
-function handle(y,isRight){
-  if(isRight) right.y=y;
-  else left.y=y;
-}
-
 addEventListener("pointermove",e=>{
-  if(singlePlayer){
-    handle(e.clientY,false);
-  }else{
-    const half=canvas.width/2;
-    if(e.clientX<half) handle(e.clientY,false);
-    else handle(e.clientY,true);
-  }
+  active=true;
+  tx=e.clientX; ty=e.clientY;
+  spiders.forEach(s=>s.follow(tx,ty,true));
 });
-
-/* helpers */
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-
-function reflect(p){
-  const rel=(ball.y-p.y)/(paddleH/2);
-  const ang=rel*Math.PI*0.45;
-  ball.speed=Math.min(ball.speed*1.05,1.5);
-  const dir=p===left?1:-1;
-  ball.vx=dir*ball.speed*Math.cos(ang);
-  ball.vy=ball.speed*Math.sin(ang);
-}
-  const GOAL_OFFSET = 20; // هرچی بیشتر = گل دیرتر حساب میشه
-
-/* AI */
-function aiMove(){
-  const target = ball.y;
-  const speed = 0.12;
-  right.y += (target - right.y) * speed;
-}
+addEventListener("pointerdown",()=>active=true);
+addEventListener("pointerup",()=>active=false);
 
 /* loop */
-function loop(){
-  paddleH=canvas.height*0.18;
-
-  ball.x+=ball.vx;
-  ball.y+=ball.vy;
-
-  if(ball.y<ball.r||ball.y>canvas.height-ball.r)
-    ball.vy*=-1;
-
-  if(singlePlayer) aiMove();
-
-  // left paddle
-  if(ball.x - ball.r < GOAL_OFFSET){
-    if(Math.abs(ball.y-left.y)<paddleH/2){
-      reflect(left);
-    }else{
-      scoreR++; scoreREl.textContent=scoreR;
-      ball.speed=6;
-      resetBall(1);
-    }
+requestAnimationFrame(function anim(t){
+  if(w!==innerWidth||h!==innerHeight){
+    w=canvas.width=innerWidth;
+    h=canvas.height=innerHeight;
   }
 
-  // right paddle
-    if(ball.x + ball.r > canvas.width - GOAL_OFFSET){
-    if(Math.abs(ball.y-right.y)<paddleH/2){
-      reflect(right);
-    }else{
-      scoreL++; scoreLEl.textContent=scoreL;
-      ball.speed=6;
-      resetBall(-1);
-    }
-  }
+  ctx.fillStyle="rgba(0,0,0,0.25)";
+  ctx.fillRect(0,0,w,h);
 
-  left.y=clamp(left.y,paddleH/2,canvas.height-paddleH/2);
-  right.y=clamp(right.y,paddleH/2,canvas.height-paddleH/2);
-
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // stars
   ctx.fillStyle="#fff";
+  stars.forEach(s=>drawCircle(s.x,s.y,1,s.a));
 
-  ctx.fillRect(left.x-paddleW/2,left.y-paddleH/2,paddleW,paddleH);
-  ctx.fillRect(right.x-paddleW/2,right.y-paddleH/2,paddleW,paddleH);
+  ctx.strokeStyle="#fff";
+  ctx.lineWidth=1;
 
-  ctx.beginPath();
-  ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
-  ctx.fill();
+  t/=1000;
+  spiders.forEach((s,i)=>{
+    if(!active) s.idle(t+i);
+    s.tick(t);
+  });
 
-  requestAnimationFrame(loop);
-}
-loop();
-
-/* mode toggle */
-modeBtn.onclick=()=>{
-  singlePlayer=!singlePlayer;
-  modeBtn.textContent = singlePlayer ? "👤🤖" : "👤👤";
-  resetGame();
-};
+  requestAnimationFrame(anim);
+});
 </script>
 
 </body>
